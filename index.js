@@ -72,8 +72,8 @@ app.get('/info', (request, response) => {
 
 const info = Person.length
 
-    response.send(`<p>Phonebook has info for  ${info} people</p>
-                             <p>${new Date()}</p>` )
+    response.send(`Phonebook has info for  ${info} people
+                              ${new Date()}` )
 
 })
 
@@ -149,7 +149,21 @@ app.post('/api/persons', (request, response) => {
     // persons = persons.concat(person)
     // response.json(person)
 })
+// для update нужно изменить фронт, добавить кнопку.
+app.put('/api/persons/:id', (request, response, next) => {
+    const body = request.body
 
+    const person = {
+        name: body.name,
+        number: body.number
+    }
+
+    Person.findByIdAndUpdate(request.params.id, person, { new: true })
+        .then(updatedPerson => {
+            response.json(updatedPerson)
+        })
+        .catch(error => next(error))
+})
 
 const unknownEndpoint = (request, response) => {
     response.status(404).send({ error: 'unknown endpoint' })
