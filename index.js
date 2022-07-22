@@ -5,52 +5,6 @@ require('dotenv').config()
 const Person = require('./models/person')
 
 
-// const mongoose = require('mongoose')
-//
-// if (process.argv.length < 3) {
-//     console.log('Please provide the password as an argument: node mongo.js <password>')
-//     process.exit(1)
-// }
-//
-// const password = process.argv[2]
-//
-// const url =
-//     `mongodb+srv://AnnSha:${password}@cluster0.luaxf.mongodb.net/phonebookApp?retryWrites=true&w=majority`
-//
-// mongoose.connect(url)
-//
-// const personSchema = new mongoose.Schema({
-//     name: String,
-//     number: String,
-//     date: Date,
-//
-// })
-//
-// const Person = mongoose.model('Person', personSchema)
-
-// let persons =
-//     [
-//         {
-//             "id": 1,
-//             "name": "Arto Hellas",
-//             "number": "040-123456"
-//         },
-//         {
-//             "id": 2,
-//             "name": "Ada Lovelace",
-//             "number": "39-44-5323523"
-//         },
-//         {
-//             "id": 3,
-//             "name": "Dan Abramov",
-//             "number": "12-43-234345"
-//         },
-//         {
-//             "id": 4,
-//             "name": "Mary Poppendieck",
-//             "number": "39-23-6423122"
-//         }
-//     ]
 
 const requestLogger = (request, response, next) => {
     console.log('Method:', request.method)
@@ -70,11 +24,10 @@ app.get('/', (req, res) => {
 
 app.get('/info', (request, response) => {
 
-const info = Person.length
-
-    response.send(`Phonebook has info for  ${info} people
-                              ${new Date()}` )
-
+Person.count().then(info =>{
+    response.send(`<p>Phonebook has info for  ${info} people</p>
+                             <p> ${new Date()} </p>` )
+})
 })
 
 app.get('/api/persons', (request, response) => {
@@ -83,28 +36,15 @@ app.get('/api/persons', (request, response) => {
     })
 })
 app.get('/api/persons/:id', (request, response, next) => {
-    // const id = Number(request.params.id)
-    // const person = persons.find(person => person.id === id)
-    // if (person) {
-    //     response.json(person)
-    // } else {
-    //     response.status(404).end()
-    // }
+
     Person.findById(request.params.id)
         .then(person => {
-            if (person) {
-                response.json(person)
-            } else {
-                response.status(404).end()
-            }
+            response.json(person)
         })
         .catch(error => next(error))
 })
 app.delete('/api/persons/:id', (request, response, next) => {
-    // const id = Number(request.params.id)
-    // persons = persons.filter(person => person.id !== id)
-    //
-    // response.status(204).end()
+
     Person.findByIdAndRemove(request.params.id)
         .then(result => {
             response.status(204).end()
@@ -114,13 +54,11 @@ app.delete('/api/persons/:id', (request, response, next) => {
 
 })
 const generateId = () => {
-
     return Math.floor(Math.random() *10000)
 }
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
     const body = request.body
-
     if (!body.name ) {
         return response.status(400).json({
             error: 'name must be included'
@@ -131,11 +69,6 @@ app.post('/api/persons', (request, response) => {
             error: 'number must be included'
         })
     }
-    // if (body.filter(e => e.name === body.name ).length) {
-    //     return response.status(400).json({
-    //         error: 'name must be unique'
-    //     })
-    // }
     const person = new Person({
         name: body.name,
         number: body.number,
@@ -145,20 +78,17 @@ app.post('/api/persons', (request, response) => {
     person.save().then(savedPerson => {
         response.json(savedPerson)
     })
-
-    // persons = persons.concat(person)
-    // response.json(person)
+        .catch(error => next(error))
 })
-// для update нужно изменить фронт, добавить кнопку.
+// для update нужно изменить фронт, добавить кнопку.zxcvbhn
 app.put('/api/persons/:id', (request, response, next) => {
-    const body = request.body
+    const { name, number } = request.body
 
-    const person = {
-        name: body.name,
-        number: body.number
-    }
-
-    Person.findByIdAndUpdate(request.params.id, person, { new: true })
+    Person.findByIdAndUpdate(
+        request.params.id,
+        { name, number },
+        { new: true, runValidators: true, context: 'query' }
+    )
         .then(updatedPerson => {
             response.json(updatedPerson)
         })
@@ -166,7 +96,7 @@ app.put('/api/persons/:id', (request, response, next) => {
 })
 
 const unknownEndpoint = (request, response) => {
-    response.status(404).send({ error: 'unknown endpoint' })
+    response.status(404).send({ error: 'unknown endpoint.' })
 }
 
 app.use(unknownEndpoint)
@@ -177,19 +107,12 @@ const errorHandler = (error, request, response, next) => {
     if (error.name === 'CastError') {
         return response.status(400).send({ error: 'malformatted id' })
     }
-
     next(error)
 }
 
-// this has to be the last loaded middleware.
 app.use(errorHandler)
 
-
-// const PORT = process.env.PORT || 3001
-// app.listen(PORT)
-// console.log(`Server running on port ${PORT}`)
-
-const PORT = process.env.PORT
+const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
